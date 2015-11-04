@@ -328,14 +328,13 @@ static GTMOAuth2Keychain* gGTMOAuth2DefaultKeychain = nil;
   if (![auth canAuthorize]) {
     if (error) {
       *error = [NSError errorWithDomain:kGTMOAuth2ErrorDomain
-                                   code:kGTMOAuth2ErrorTokenUnavailable
+                                   code:GTMOAuth2ErrorTokenUnavailable
                                userInfo:nil];
     }
     return NO;
   }
 
-  if (accessibility == NULL
-      && &kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly != NULL) {
+  if (accessibility == NULL) {
     accessibility = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly;
   }
 
@@ -497,8 +496,12 @@ static Class gSignInClass = Nil;
   self.signInCookies = [self swapBrowserCookies:self.systemCookies];
 }
 
+- (NSHTTPCookieStorage *)systemCookieStorage {
+  return [NSHTTPCookieStorage sharedHTTPCookieStorage];
+}
+
 - (NSArray *)swapBrowserCookies:(NSArray *)newCookies {
-  NSHTTPCookieStorage *cookieStorage = [NSHTTPCookieStorage sharedHTTPCookieStorage];
+  NSHTTPCookieStorage *cookieStorage = [self systemCookieStorage];
 
   NSHTTPCookieAcceptPolicy savedPolicy = [cookieStorage cookieAcceptPolicy];
   [cookieStorage setCookieAcceptPolicy:NSHTTPCookieAcceptPolicyAlways];
@@ -725,7 +728,7 @@ static Class gSignInClass = Nil;
     // Work around iOS 7.0 bug described in https://devforums.apple.com/thread/207323 by temporarily
     // setting our cookie storage policy to be permissive enough to keep the sign-in server
     // satisfied, just in case the app inherited from Safari a policy that blocks all cookies.
-    NSHTTPCookieStorage *storage = [NSHTTPCookieStorage sharedHTTPCookieStorage];
+    NSHTTPCookieStorage *storage = [self systemCookieStorage];
     NSHTTPCookieAcceptPolicy policy = [storage cookieAcceptPolicy];
     if (policy == NSHTTPCookieAcceptPolicyNever) {
       savedCookiePolicy_ = policy;
@@ -763,7 +766,7 @@ static Class gSignInClass = Nil;
     }
 
     if (savedCookiePolicy_ != (NSHTTPCookieAcceptPolicy)NSUIntegerMax) {
-      NSHTTPCookieStorage *storage = [NSHTTPCookieStorage sharedHTTPCookieStorage];
+      NSHTTPCookieStorage *storage = [self systemCookieStorage];
       [storage setCookieAcceptPolicy:savedCookiePolicy_];
       savedCookiePolicy_ = (NSHTTPCookieAcceptPolicy)NSUIntegerMax;
     }
@@ -844,7 +847,7 @@ static Class gSignInClass = Nil;
     [self.webView loadRequest:self.request];
   } else {
     [initialActivityIndicator_ setHidden:YES];
-    [signIn_ cookiesChanged:[NSHTTPCookieStorage sharedHTTPCookieStorage]];
+    [signIn_ cookiesChanged:[self systemCookieStorage]];
 
     [self updateUI];
   }
@@ -1024,7 +1027,7 @@ static Class gSignInClass = Nil;
 
 // iPhone
 - (NSString *)passwordForService:(NSString *)service account:(NSString *)account error:(NSError **)error {
-  OSStatus status = kGTMOAuth2KeychainErrorBadArguments;
+  OSStatus status = GTMOAuth2KeychainErrorBadArguments;
   NSString *result = nil;
   if (0 < [service length] && 0 < [account length]) {
     CFDataRef passwordData = NULL;
@@ -1053,7 +1056,7 @@ static Class gSignInClass = Nil;
 
 // iPhone
 - (BOOL)removePasswordForService:(NSString *)service account:(NSString *)account error:(NSError **)error {
-  OSStatus status = kGTMOAuth2KeychainErrorBadArguments;
+  OSStatus status = GTMOAuth2KeychainErrorBadArguments;
   if (0 < [service length] && 0 < [account length]) {
     NSMutableDictionary *keychainQuery = [self keychainQueryForService:service account:account];
     status = SecItemDelete((CFDictionaryRef)keychainQuery);
@@ -1072,7 +1075,7 @@ static Class gSignInClass = Nil;
       accessibility:(CFTypeRef)accessibility
             account:(NSString *)account
               error:(NSError **)error {
-  OSStatus status = kGTMOAuth2KeychainErrorBadArguments;
+  OSStatus status = GTMOAuth2KeychainErrorBadArguments;
   if (0 < [service length] && 0 < [account length]) {
     [self removePasswordForService:service account:account error:nil];
     if (0 < [password length]) {
@@ -1080,7 +1083,7 @@ static Class gSignInClass = Nil;
       NSData *passwordData = [password dataUsingEncoding:NSUTF8StringEncoding];
       [keychainQuery setObject:passwordData forKey:(id)kSecValueData];
 
-      if (accessibility != NULL && &kSecAttrAccessible != NULL) {
+      if (accessibility != NULL) {
         [keychainQuery setObject:(id)accessibility
                           forKey:(id)kSecAttrAccessible];
       }
