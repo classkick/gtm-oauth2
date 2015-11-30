@@ -12,4 +12,4 @@ Pod::Spec.new do |s|
 
    s.source_files = 'gtm-oauth2/*.{h,m}'
    s.requires_arc = false
- end
+end
