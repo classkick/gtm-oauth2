@@ -7,6 +7,7 @@ Pod::Spec.new do |s|
    s.homepage = 'https://github.com/classkick/gtm-oauth2'
    s.author   = { 'Colin Shevlin' => 'colin@classkick.com' }
    s.source   = { :git =>'https://github.com/classkick/gtm-oauth2.git', :tag => s.version.to_s }
+   s.source_files = 'Source/'
 
    s.description = ""
 
