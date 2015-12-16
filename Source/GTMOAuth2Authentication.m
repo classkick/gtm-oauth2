@@ -583,34 +583,25 @@ finishedRefreshWithFetcher:(GTMOAuth2Fetcher *)fetcher
 #else
       BOOL useCallbackQueue = [self.fetcherService respondsToSelector:@selector(callbackQueue)];
 #endif
-      if (useCallbackQueue) {
-        dispatch_queue_t callbackQueue = self.fetcherService.callbackQueue;
-        if (!callbackQueue) {
-          callbackQueue = dispatch_get_main_queue();
-        }
-        dispatch_async(callbackQueue, ^{
-          [self invokeCallbackArgs:args];
-        });
-      } else {
+
 #if !GTM_USE_SESSION_FETCHER
-        // We might have an old fetcher service; we'll use its delegateQueue for the callback,
-        // if that's available, else we'll hope the original thread has a spinning run loop.
-        SEL sel = @selector(invokeCallbackArgs:);
-        NSOperationQueue *delegateQueue = self.fetcherService.delegateQueue;
-        if (delegateQueue) {
-          NSInvocationOperation *op =
-              [[[NSInvocationOperation alloc] initWithTarget:self
-                                                    selector:sel
-                                                      object:args] autorelease];
-          [delegateQueue addOperation:op];
-        } else {
-          [self performSelector:sel
-                       onThread:targetThread
-                     withObject:args
-                  waitUntilDone:NO];
-        }
-#endif // !GTM_USE_SESSION_FETCHER
+    // We might have an old fetcher service; we'll use its delegateQueue for the callback,
+    // if that's available, else we'll hope the original thread has a spinning run loop.
+      SEL sel = @selector(invokeCallbackArgs:);
+      NSOperationQueue *delegateQueue = self.fetcherService.delegateQueue;
+      if (delegateQueue) {
+        NSInvocationOperation *op =
+            [[[NSInvocationOperation alloc] initWithTarget:self
+                                                  selector:sel
+                                                    object:args] autorelease];
+        [delegateQueue addOperation:op];
+      } else {
+        [self performSelector:sel
+                     onThread:targetThread
+                   withObject:args
+                waitUntilDone:NO];
       }
+#endif // !GTM_USE_SESSION_FETCHER
     }
   }
 
